@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عجلة حظ الطلاب</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1e1e2f, #2d2b55);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #00d2ff;
+      text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+      align-items: flex-start;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    /* قسم العجلة */
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 350px;
+      height: 350px;
+    }
+
+    /* المؤشر */
+    .arrow {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 30px solid #ff0055;
+      z-index: 10;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      transition: transform 4s cubic-bezier(0.15, 0.99, 0.35, 1);
+    }
+
+    button.spin-btn {
+      margin-top: 20px;
+      padding: 12px 35px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background: #00d2ff;
+      color: #000;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+    }
+
+    button.spin-btn:hover {
+      background: #00a2c7;
+      transform: scale(1.05);
+    }
+
+    button.spin-btn:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* قسم التحكم بالأسماء */
+    .controls-section {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 12px;
+      width: 320px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #12121a;
+      color: #fff;
+      outline: none;
+    }
+
+    .add-btn {
+      padding: 10px 15px;
+      background: #00e676;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .student-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+    }
+
+    .delete-btn {
+      background: #ff5252;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    /* النافذة المنبثقة للفائز */
+    .winner-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .winner-content {
+      background: #232338;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid #00d2ff;
+      box-shadow: 0 0 30px rgba(0,210,255,0.3);
+    }
+
+    .winner-name {
+      font-size: 2rem;
+      color: #ffea00;
+      margin: 15px 0;
+    }
+
+    .modal-btn {
+      padding: 8px 16px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .close-btn { background: #00d2ff; color: #000; }
+    .remove-winner-btn { background: #ff5252; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 عجلة حظ الطلاب</h1>
+
+  <div class="container">
+    <!-- قسم العجلة -->
+    <div class="wheel-section">
+      <div class="wheel-container">
+        <div class="arrow"></div>
+        <canvas id="wheel" width="350" height="350"></canvas>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spin()">تدوير العجلة</button>
+    </div>
+
+    <!-- قسم التحكم بالأسماء -->
+    <div class="controls-section">
+      <h3>قائمة الطلاب (<span id="count">0</span>)</h3>
+      <div class="input-group">
+        <input type="text" id="studentInput" placeholder="أدخل اسم الطالب..." onkeypress="handleKeyPress(event)">
+        <button class="add-btn" onclick="addStudent()">إضافة</button>
+      </div>
+      <ul class="student-list" id="studentList"></ul>
+    </div>
+  </div>
+
+  <!-- نافذة الفائز -->
+  <div class="winner-modal" id="winnerModal">
+    <div class="winner-content">
+      <h2>🎉 الطالب الفائز هو:</h2>
+      <div class="winner-name" id="winnerName">---</div>
+      <button class="modal-btn remove-winner-btn" onclick="removeWinner()">إزالة من العجلة</button>
+      <button class="modal-btn close-btn" onclick="closeModal()">إغلاق</button>
+    </div>
+  </div>
+
+  <script>
+    // قائمة الطلاب الافتراضية
+    let students = JSON.parse(localStorage.getItem('students')) || ["أحمد", "سارة", "محمد", "فاطمة", "علي"];
+    
+    const colors = ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40", "#E7E9ED", "#76FF03"];
+    
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    let currentAngle = 0;
+    let isSpinning = false;
+    let winningIndex = -1;
+
+    // رسم العجلة
+    function drawWheel() {
+      const numSlices = students.length;
+      const radius = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (numSlices === 0) {
+        ctx.beginPath();
+        ctx.arc(radius, radius, radius - 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#333';
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('أضف طلاب للبدء', radius, radius);
+        return;
+      }
+
+      const sliceAngle = (Math.PI * 2) / numSlices;
+
+      students.forEach((student, i) => {
+        const angle = i * sliceAngle;
+        
+        // رسم القطاع
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius - 5, angle, angle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#1e1e2f';
+        ctx.stroke();
+
+        // رسم النص
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 14px Arial";
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(student, radius - 20, 5);
+        ctx.restore();
+      });
+    }
+
+    // تدوير العجلة
+    function spin() {
+      if (isSpinning || students.length === 0) return;
+
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+
+      // حساب زاوية عشوائية (بين 5 إلى 10 دورات كاملة + زاوية عشوائية)
+      const numSlices = students.length;
+      const randomSlice = Math.floor(Math.random() * numSlices);
+      winningIndex = randomSlice;
+
+      const sliceDegrees = 360 / numSlices;
+      // حساب الزاوية المطلوبة لتقف العجلة تحت المؤشر العلوي (270 درجة)
+      const stopAngle = 360 - (randomSlice * sliceDegrees) - (sliceDegrees / 2) + 270;
+      const extraRounds = 360 * (5 + Math.floor(Math.random() * 3)); 
+      
+      currentAngle += extraRounds + (stopAngle - (currentAngle % 360));
+
+      canvas.style.transform = `rotate(${currentAngle}deg)`;
+
+      setTimeout(() => {
+        isSpinning = false;
+        document.getElementById('spinBtn').disabled = false;
+        showWinner(students[winningIndex]);
+      }, 4000);
+    }
+
+    // إظهار نافذة الفائز
+    function showWinner(name) {
+      document.getElementById('winnerName').innerText = name;
+      document.getElementById('winnerModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('winnerModal').style.display = 'none';
+    }
+
+    function removeWinner() {
+      if (winningIndex !== -1) {
+        students.splice(winningIndex, 1);
+        updateUI();
+        closeModal();
+      }
+    }
+
+    // إدارة الأسماء
+    function addStudent() {
+      const input = document.getElementById('studentInput');
+      const name = input.value.trim();
+      if (name) {
+        students.push(name);
+        input.value = '';
+        updateUI();
+      }
+    }
+
+    function deleteStudent(index) {
+      students.splice(index, 1);
+      updateUI();
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') addStudent();
+    }
+
+    function updateUI() {
+      localStorage.setItem('students', JSON.stringify(students));
+      document.getElementById('count').innerText = students.length;
+      document.getElementById('spinBtn').disabled = students.length === 0;
+      
+      // تحديث قائمة الأسماء
+      const list = document.getElementById('studentList');
+      list.innerHTML = '';
+      students.forEach((student, index) => {
+        const li = document.createElement('li');
+        li.className = 'student-item';
+        li.innerHTML = `
+          <span>${student}</span>
+          <button class="delete-btn" onclick="deleteStudent(${index})">حذف</button>
+        `;
+        list.appendChild(li);
+      });
+
+      drawWheel();
+    }
+
+    // التشغيل عند الفتح
+    updateUI();
+  </script>
+</body>
+</html>
